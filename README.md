@@ -1,6 +1,27 @@
 # Gather — Celebration & Event Planner
 
+**Public repository:** https://github.com/JENX-5/gather-event-planner
+
 A GenAI-powered planning assistant for weddings, birthdays, and community events. Built for Challenge 5 with Gemini, a Node.js backend, and a responsive vanilla JavaScript frontend. No runtime npm dependencies or build step required. Prettier and jsdom are development-only tools.
+
+## Application pages
+
+Gather is a routed web application with distinct screens and browser history:
+
+| Page                  | Route                   |
+| --------------------- | ----------------------- |
+| Event library         | `/events`               |
+| Create a celebration  | `/events/new`           |
+| Archived celebrations | `/events/archive`       |
+| Event overview        | `/events/:id/overview`  |
+| Budget                | `/events/:id/budget`    |
+| Timeline              | `/events/:id/timeline`  |
+| Vendor team           | `/events/:id/vendors`   |
+| Guests and RSVPs      | `/events/:id/guests`    |
+| Personalized ideas    | `/events/:id/ideas`     |
+| Planning assistant    | `/events/:id/assistant` |
+
+Each route works on refresh. Browser Back and Forward restore the correct screen. Event links require that event's data in the same browser; use backup/import to move events between devices.
 
 ## Chosen vertical
 
@@ -39,7 +60,7 @@ Open **http://localhost:3000**. Without an API key, the app runs in clearly labe
 
 ```dotenv
 GEMINI_API_KEY=your_key_here
-GEMINI_MODEL=gemini-2.5-flash-lite
+GEMINI_MODEL=gemini-3.1-flash-lite
 PORT=3000
 ```
 
@@ -52,25 +73,29 @@ The default model supports structured output and has free-tier access subject to
 
 ## Features
 
+- Event library, dedicated creation page, event duplication, and recoverable archive/restore.
 - Multiple saved events with names, dates, location, guest count, currency, and preferences.
 - AI-generated budgets, dated task timelines, vendor procurement checklists, and personalized ideas.
 - Editable planned and actual expenses, remaining budget, and category differences.
-- Task completion, custom tasks, and overall planning progress.
-- Vendor names, booking statuses, and notes.
+- Add, edit, remove, and undo removal for tasks and budget categories; task owners, filters, and overall progress.
+- Vendor records with booking status, contact information, quotes, deposits, and procurement notes.
+- Guest parties, RSVP status, dietary/accessibility notes, capacity warnings, and confirmed headcounts.
+- Follow-up assistant conversation using the event brief and recent messages.
+- Turn ideas into timeline tasks with one click.
 - INR, USD, EUR, and GBP formatting.
-- Local browser persistence and a downloadable text plan.
+- Local browser persistence, complete text export, print/save as PDF, JSON backup/import, and calendar (.ics) export.
 - Restore the previous plan after regeneration.
 - Demo mode with templates for all three celebration types.
 - Responsive dashboard with keyboard-accessible forms and dialogs.
 
 ## Free-tier usage controls
 
-Each generation makes one `generateContent` request. Repeated identical event details reuse an in-memory cache (up to 50 plans). The server allows one active AI request and a minimum 15-second gap between uncached requests. It caps output at 4,500 tokens and applies a 45-second timeout. No automatic retries or background AI calls occur. These controls reduce usage but do not guarantee staying within your account quota. A 429 response is shown as a helpful quota message; existing plans remain intact.
+Each plan generation or assistant question makes one `generateContent` request. Both endpoints share the same throttle and cache. Repeated identical event details reuse an in-memory cache (up to 50 plans). The server allows one active AI request and a minimum 15-second gap between uncached requests. It caps plan output at 4,500 tokens and assistant output at 1,400 tokens and applies a 45-second timeout. No automatic retries or background AI calls occur. These controls reduce usage but do not guarantee staying within your account quota. A 429 response is shown as a helpful quota message; existing plans remain intact.
 
 ## Architecture
 
 ```text
-Browser UI → POST /api/plan → input validation → cache / throttle
+Browser UI → POST /api/plan or /api/assistant → input validation → cache / throttle
                                             → Gemini REST API
                                             → response validation
                                             → normalized editable plan
@@ -79,7 +104,10 @@ Browser localStorage ← events, budgets, tasks, vendors, previous plan
 
 - `server.js`: localhost HTTP server, static allowlist, API proxy, quota handling, and security headers.
 - `planner.js`: input validation, demo templates, Gemini response schema, plan validation, and budget normalization.
-- `public/app.js`: event management, dashboard sections, editing, storage, and export.
+- `public/app.js`: application state, navigation, editing, storage, import/export, and event management.
+- `public/workspace.js`: event library, focused planning pages, guest workflow, assistant UI, record forms, and calendar generation.
+- `public/router.js`: URL resolution and event route generation.
+- `assistant.js`: conversation validation and clearly labeled demo guidance.
 - `public/styles.css`: responsive visual design and CSS illustration.
 - `test/planner.test.js`: budget, validation, event-type, and HTTP integration tests.
 
@@ -91,7 +119,7 @@ npm run check
 npm test
 ```
 
-The suite includes 16 tests across planning logic, HTTP security, mocked Gemini success/failure paths, caching and throttling, and frontend interactions. The GitHub Actions workflow runs formatting, tests, and a production dependency audit on Node 22 and 24. Mocked Gemini tests consume no API quota.
+The suite includes 28 tests across planning logic, HTTP security, mocked Gemini success/failure paths, caching and throttling, and frontend interactions. The GitHub Actions workflow runs formatting, tests, and a production dependency audit on Node 22 and 24. Mocked Gemini tests consume no API quota.
 
 Tests cover exact budget totals, planning templates, invalid inputs, generated-plan validation, static serving, request origin checks, and blocking access to `.env`.
 
@@ -120,10 +148,10 @@ Accessibility measures are implemented, but this is not a claim of a full WCAG a
 
 ## Reviewer walkthrough
 
-Run the app without a key to explore the sample birthday. Create a wedding or community event, edit an actual cost to exceed its planned allocation, complete a task, and record a vendor quote status. Reload to check persistence. Configure your key and generate a plan with specific preferences, such as a vegetarian garden wedding with step-free access. Review its ideas and checklist, then export the plan. If quota is unavailable, existing work remains editable.
+Run the app without a key to open the event library and sample birthday. Navigate between the separate pages, use browser Back, and refresh a deep link. Create a wedding or community event, edit an actual cost to exceed its planned allocation, complete a task, and record a vendor quote status. Reload to check persistence. Configure your key and generate a plan with specific preferences, such as a vegetarian garden wedding with step-free access. Review its ideas and checklist, ask a follow-up question on Assistant, then export the plan. Add a guest party with a confirmed RSVP, edit a vendor quote, archive and restore a duplicate event, and download/import a JSON backup. If quota is unavailable, existing work remains editable.
 
 ## Scope and storage
 
-This is a local, single-user project, not a hosted multi-user service. It binds to `127.0.0.1`. Saved events belong to the current browser profile and origin; clearing browser storage removes them. Export a copy of important plans. There is no login, cloud database, real vendor directory, vendor booking, or message delivery. Budget amounts are planning estimates, not live prices or quotes. Existing task dates and allocations are preserved when event details are edited; generate a fresh plan to update them. Demo templates intentionally use fixed lead times, so tasks may already be overdue for a near-term event.
+This is a local, single-user project, not a hosted multi-user service. It binds to `127.0.0.1`. Saved events belong to the current browser profile and origin; clearing browser storage removes them. Export a copy of important plans. There is no login, cloud database, live vendor search, automatic vendor booking, or message delivery. Guest contacts and vendor details are local records and are excluded from AI requests. Backup files include these records, so store backups privately. Text and PDF reports include only aggregate guest counts. Budget amounts are planning estimates, not live prices or quotes. Existing task dates and allocations are preserved when event details are edited; generate a fresh plan to update them. Demo templates intentionally use fixed lead times, so tasks may already be overdue for a near-term event.
 
-Before deploying a shared instance, add authentication, per-user storage, durable quota controls, and hosting configuration. Live Gemini responses require your key and have not been verified using a real credential in this project setup.
+Before deploying a shared instance, add authentication, per-user storage, durable quota controls, and hosting configuration. Live Gemini plan generation and follow-up assistance were verified with synthetic event details on 31 October 2026 using Gemini 3.1 Flash-Lite. The generated plan correctly totaled the supplied ₹60,000 budget and included tasks, vendor categories, and personalized ideas. API keys are never included in the repository.

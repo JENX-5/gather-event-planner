@@ -65,6 +65,15 @@ test('server serves the app, validates input and keeps secrets private', async (
   const base = `http://127.0.0.1:${server.address().port}`;
   try {
     assert.equal((await fetch(base)).status, 200);
+    for (const route of [
+      '/events',
+      '/events/new',
+      '/events/archive',
+      '/events/sample/guests',
+      '/router.js',
+      '/workspace.js',
+    ])
+      assert.equal((await fetch(base + route)).status, 200);
     const status = await (await fetch(base + '/api/status')).json();
     assert.ok(!('key' in status));
     const invalid = await fetch(base + '/api/plan', {

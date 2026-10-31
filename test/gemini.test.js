@@ -105,3 +105,61 @@ test('host validation blocks DNS rebinding requests', async () => {
     assert.equal(status, 403);
   });
 });
+
+test('assistant endpoint returns a Gemini answer and excludes private records', async () => {
+  await withApp(
+    {
+      key: 'test-only-key',
+      request: async (_url, options) => {
+        const body = JSON.parse(options.body);
+        assert.ok(!options.body.includes('Private guest'));
+        assert.equal(body.generationConfig.maxOutputTokens, 1400);
+        return Response.json({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  { text: 'Choose seasonal flowers and compare quotes.' },
+                ],
+              },
+            },
+          ],
+        });
+      },
+    },
+    async (_plan, base) => {
+      const response = await fetch(base + '/api/assistant', {
+        method: 'POST',
+        body: JSON.stringify({
+          event: { ...event, guestList: [{ name: 'Private guest' }] },
+          question: 'How can we reduce costs?',
+          history: [],
+        }),
+      });
+      assert.equal(response.status, 200);
+      const data = await response.json();
+      assert.equal(data.source, 'gemini');
+      assert.match(data.answer, /seasonal/);
+    },
+  );
+});
+test('assistant endpoint offers labeled demo guidance and rejects empty questions', async () => {
+  await withApp({ key: '' }, async (_plan, base) => {
+    const good = await fetch(base + '/api/assistant', {
+      method: 'POST',
+      body: JSON.stringify({
+        event,
+        question: 'What should I ask the caterer?',
+        history: [],
+      }),
+    });
+    const data = await good.json();
+    assert.equal(data.source, 'demo');
+    assert.match(data.answer, /caterer/);
+    const bad = await fetch(base + '/api/assistant', {
+      method: 'POST',
+      body: JSON.stringify({ event, question: '' }),
+    });
+    assert.equal(bad.status, 400);
+  });
+});
