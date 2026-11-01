@@ -341,3 +341,23 @@ test('print includes the entire plan from any section', async () => {
     dom.window.close();
   }
 });
+
+test('browser modules use resolvable relative imports for Vercel builds', async () => {
+  for (const file of ['app.js', 'workspace.js', 'router.js', 'ui-utils.js']) {
+    const source = await readFile(
+      new URL(`../public/${file}`, import.meta.url),
+      'utf8',
+    );
+    for (const [, specifier] of source.matchAll(/from\\s+['"]([^'"]+)['"]/g)) {
+      assert.ok(
+        !specifier.startsWith('/'),
+        `${file} has an unresolved root-absolute module import: ${specifier}`,
+      );
+      const resolved = new URL(
+        specifier,
+        new URL(`../public/${file}`, import.meta.url),
+      );
+      await readFile(resolved, 'utf8');
+    }
+  }
+});

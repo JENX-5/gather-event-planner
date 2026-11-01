@@ -1,4 +1,4 @@
-import { eventPath, resolveRoute } from '/router.js';
+import { eventPath, resolveRoute } from './router.js';
 import {
   library,
   guestPanel,
@@ -9,13 +9,13 @@ import {
   download,
   calendarText,
   editRecord,
-} from '/workspace.js';
-import { demoPlan, validateEvent, validDate } from '/planner.js';
+} from './workspace.js';
+import { demoPlan, validateEvent, validDate } from './planner.js';
 const $ = (s) => document.querySelector(s);
 // A template tag for readable HTML formatting; dynamic text is explicitly escaped.
 const html = (parts, ...values) =>
   parts.reduce((result, part, i) => result + part + (values[i] ?? ''), '');
-import { escapeHtml as esc, daysUntil, captureFocus } from '/ui-utils.js';
+import { escapeHtml as esc, daysUntil, captureFocus } from './ui-utils.js';
 const today = () => new Date().toLocaleDateString('en-CA');
 const future = new Date();
 future.setDate(future.getDate() + 60);
