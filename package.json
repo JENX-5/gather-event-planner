@@ -9,7 +9,8 @@
     "start": "node --env-file-if-exists=.env server.js",
     "test": "node --test",
     "format": "prettier --write .",
-    "check": "prettier --check ."
+    "check": "prettier --check .",
+    "build": "node scripts/prepare-vercel.js"
   },
   "engines": {
     "node": ">=22"

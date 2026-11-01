@@ -106,6 +106,45 @@ test('host validation blocks DNS rebinding requests', async () => {
   });
 });
 
+test('Vercel deployment host allowlist accepts assigned production host only', async () => {
+  const previous = process.env.VERCEL_PROJECT_PRODUCTION_URL;
+  process.env.VERCEL_PROJECT_PRODUCTION_URL = 'gather-project.vercel.app';
+  try {
+    await withApp({ key: '' }, async (_plan, base) => {
+      const production = await new Promise((resolve, reject) => {
+        http
+          .get(
+            base + '/api/status',
+            { headers: { Host: 'gather-project.vercel.app' } },
+            (response) => {
+              response.resume();
+              resolve(response.statusCode);
+            },
+          )
+          .on('error', reject);
+      });
+      const untrusted = await new Promise((resolve, reject) => {
+        http
+          .get(
+            base + '/api/status',
+            { headers: { Host: 'untrusted.vercel.app' } },
+            (response) => {
+              response.resume();
+              resolve(response.statusCode);
+            },
+          )
+          .on('error', reject);
+      });
+      assert.equal(production, 200);
+      assert.equal(untrusted, 403);
+    });
+  } finally {
+    if (previous === undefined)
+      delete process.env.VERCEL_PROJECT_PRODUCTION_URL;
+    else process.env.VERCEL_PROJECT_PRODUCTION_URL = previous;
+  }
+});
+
 test('assistant endpoint returns a Gemini answer and excludes private records', async () => {
   await withApp(
     {

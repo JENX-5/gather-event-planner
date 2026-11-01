@@ -42,7 +42,16 @@ export function createApp({
       'Content-Security-Policy',
       "default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'",
     );
-    if (!/^(localhost|127\.0\.0\.1)(:\d+)?$/.test(req.headers.host || ''))
+    const requestHost = (req.headers.host || '').split(':')[0].toLowerCase();
+    const trustedHosts = [
+      'localhost',
+      '127.0.0.1',
+      process.env.VERCEL_URL,
+      process.env.VERCEL_PROJECT_PRODUCTION_URL,
+    ]
+      .filter(Boolean)
+      .map((value) => String(value).split(':')[0].toLowerCase());
+    if (!trustedHosts.includes(requestHost))
       return json(res, 403, { error: 'Invalid host.' });
     const path = new URL(req.url, 'http://localhost').pathname;
     if (req.method === 'GET' && path === '/api/status')
@@ -191,9 +200,9 @@ export function createApp({
       '/app.js': 'app.js',
       '/ui-utils.js': 'ui-utils.js',
       '/workspace.js': 'workspace.js',
+      '/planner.js': '../planner.js',
       '/router.js': 'router.js',
       '/styles.css': 'styles.css',
-      '/planner.js': '../planner.js',
     };
     if (
       /^\/events(?:\/(?:new|archive|[^/]+\/(?:overview|budget|timeline|vendors|guests|ideas|assistant)))?$/.test(
@@ -218,7 +227,7 @@ export function createApp({
   });
 }
 export const server = createApp();
-if (process.env.NODE_ENV !== 'test')
+if (process.env.NODE_ENV !== 'test' && process.env.VERCEL !== '1')
   server.listen(Number(process.env.PORT) || 3000, '127.0.0.1', () =>
     console.log(
       `Gather is ready at http://localhost:${process.env.PORT || 3000} (${process.env.GEMINI_API_KEY ? 'Gemini' : 'demo'} mode)`,

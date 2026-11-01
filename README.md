@@ -66,6 +66,20 @@ The two AI actions use `/api/plan` and `/api/assistant`. The browser never recei
 
 Without an API key, the same screens use deterministic, clearly labeled demo templates and sample assistant guidance. Budget math, RSVP counts, task completion, vendor tracking, archive/restore, calendar export, and print/export are application logic and do **not** use GenAI. Gemini does not discover or contact vendors, send invitations, make bookings, process payments, or change the plan without the user's action.
 
+## Deploy to Vercel
+
+This repository includes a Vercel Node.js function for the Gemini API, a static browser build, and rewrites for direct event-page links. The build publishes the shared `planner.js` source as a browser module. Vercel runs the Gemini proxy as a serverless function; saved events remain in each visitor’s browser.
+
+1. Push this repository to GitHub, then sign in to [Vercel](https://vercel.com/) and choose **Add New → Project**.
+2. Import **`JENX-5/gather-event-planner`** and select the `main` branch.
+3. Keep the repository root as the project root. The committed `vercel.json` specifies `npm run build` and `public` as the output directory. Use the Node.js runtime; the project targets Node 22 or newer.
+4. In **Project → Settings → Environment Variables**, add `GEMINI_MODEL` = `gemini-3.1-flash-lite`. If enabling Gemini, also add `GEMINI_API_KEY` and paste your key directly into Vercel’s secret environment-variable field. Add it to **Production** and **Preview** only if you want AI enabled in both. Never commit `.env` or paste the key into source code.
+5. Click **Deploy**. Open the resulting `https://…vercel.app/events` URL. Test the event pages, refresh a deep link, generate a plan, and ask an assistant question. Changes to environment variables require a new deployment.
+
+With `GEMINI_API_KEY` unset, the deployed app runs in demo mode. Before putting a personal Gemini key on a public URL, add authentication and a persistent rate limit: the local 15-second throttle and response cache are in-memory and do not coordinate between Vercel function instances. An unrestricted public API can use up the key’s free-tier quota. Vercel’s function limits also cap how long an AI request can run; the app uses a 45-second upstream timeout.
+
+See Vercel’s official [Git deployment guide](https://vercel.com/docs/deployments/git), [environment-variable guide](https://vercel.com/docs/environment-variables), [build settings](https://vercel.com/docs/builds/configure-a-build), and [function duration limits](https://vercel.com/docs/functions/configuring-functions/duration).
+
 ## Enable Gemini
 
 1. Create a key in [Google AI Studio](https://aistudio.google.com/apikey).
@@ -132,7 +146,7 @@ npm run check
 npm test
 ```
 
-The suite includes 28 tests across planning logic, HTTP security, mocked Gemini success/failure paths, caching and throttling, and frontend interactions. The GitHub Actions workflow runs formatting, tests, and a production dependency audit on Node 22 and 24. Mocked Gemini tests consume no API quota.
+The suite includes 28 tests across planning logic, HTTP security, mocked Gemini success/failure paths, caching and throttling, and frontend interactions. The GitHub Actions workflow runs formatting, the Vercel static build, tests, and a production dependency audit on Node 22 and 24. Mocked Gemini tests consume no API quota.
 
 Tests cover exact budget totals, planning templates, invalid inputs, generated-plan validation, static serving, request origin checks, and blocking access to `.env`.
 
