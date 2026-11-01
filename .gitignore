@@ -3,6 +3,4 @@ node_modules/
 .DS_Store
 coverage/
 
-# Generated during Vercel build; canonical source is /planner.js
-/public/planner.js
 .vercel
